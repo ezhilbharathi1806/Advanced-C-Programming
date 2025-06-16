@@ -222,3 +222,119 @@ In embedded C programming, `pthread` (POSIX Threads) is used for **multithreadin
 * **RTOS without POSIX support**: Systems like FreeRTOS or Zephyr may use their own threading APIs (e.g., `xTaskCreate()` in FreeRTOS) instead of `pthread`.
 
 ---
+
+
+## **1. Process in C (Operating System Context)**
+
+A **process** is an instance of a program in execution. In the context of C and operating systems (especially UNIX/Linux), processes are central to multitasking and resource management.
+
+### **Creating and Managing Processes in C**
+
+In C (especially on UNIX/Linux), processes are typically handled using system calls like:
+
+* `fork()`
+* `exec()` family (`execl()`, `execp()`, etc.)
+* `wait()`
+* `exit()`
+
+### **Process Lifecycle in C**
+
+1. **Parent Process**:
+   This is the process that creates another process using `fork()`.
+
+2. **Creating a Child Process**:
+
+   ```c
+   pid_t pid = fork();
+   if (pid == 0) {
+       // Child process code
+   } else if (pid > 0) {
+       // Parent process code
+   } else {
+       // Error occurred
+   }
+   ```
+
+3. **Replacing Process Image (exec)**:
+
+   * Used to replace the current process image with a new one.
+
+   ```c
+   execl("/bin/ls", "ls", NULL);
+   ```
+
+4. **Waiting for Child (wait)**:
+
+   * Parent waits for child to finish.
+
+   ```c
+   wait(NULL);
+   ```
+
+5. **Process Termination**:
+
+   * Done using `exit(status);`.
+
+---
+
+## **2. IPC (Inter-Process Communication)**
+
+**IPC** refers to mechanisms that allow processes to communicate and synchronize their actions.
+
+### **Types of IPC in UNIX/Linux**
+
+| IPC Method              | Description                                                             |
+| ----------------------- | ----------------------------------------------------------------------- |
+| **Pipes**               | Unidirectional communication between related processes                  |
+| **Named Pipes (FIFOs)** | Like pipes, but with a name and can be used between unrelated processes |
+| **Message Queues**      | Allow messages to be sent between processes via a queue                 |
+| **Shared Memory**       | Allows multiple processes to access the same memory region              |
+| **Semaphores**          | Used to control access to shared resources (used with shared memory)    |
+| **Sockets**             | Communication over a network or between unrelated processes             |
+| **Signals**             | Asynchronous notifications sent to a process to notify events           |
+
+---
+
+### **Examples**
+
+#### **1. Pipe Example**
+
+```c
+int fd[2];
+pipe(fd); // create pipe
+pid_t pid = fork();
+if (pid == 0) {
+    close(fd[0]); // close read
+    write(fd[1], "Hello", 5);
+} else {
+    close(fd[1]); // close write
+    char buffer[6];
+    read(fd[0], buffer, 5);
+    buffer[5] = '\0';
+    printf("Received: %s\n", buffer);
+}
+```
+
+#### **2. Shared Memory Example**
+
+Using `shmget`, `shmat`, and `shmdt`:
+
+```c
+key_t key = ftok("shmfile",65);
+int shmid = shmget(key,1024,0666|IPC_CREAT);
+char *str = (char*) shmat(shmid,(void*)0,0);
+strcpy(str,"Shared Memory Example");
+shmdt(str);
+```
+
+---
+
+### **Choosing the Right IPC**
+
+* Use **pipes** or **FIFOs** for simple parent-child communication.
+* Use **shared memory + semaphores** for high-speed communication with synchronization.
+* Use **message queues** when you need structured message passing.
+* Use **sockets** for network or distributed processes.
+
+---
+
