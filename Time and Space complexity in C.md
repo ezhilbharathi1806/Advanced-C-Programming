@@ -1,11 +1,19 @@
 ### ✅ **Time Complexity**:
 * how the execution time of a program or algorithm increases with the size of the input. expressed using **Big O notation**
 * Time complexity helps estimate how fast the program runs.
-
+	1. O(1): Constant time. The running time doesn’t change with the input size. Example: Accessing an array element by index.
+	2. O(log n): Logarithmic time. The running time increases logarithmically as the input size increases. Example: Binary search in a sorted array.
+	3. O(n): Linear time. The running time increases linearly with the input size. Example: Iterating through an array.
+	4. O(n log n): Log-linear time. Common in efficient sorting algorithms like mergesort and quicksort.
+	5. O(n²): Quadratic time. The running time grows quadratically with the input size. Example: Nested loops, such as in bubble sort.
+	6. O(2^n): Exponential time. The running time doubles with each additional input element. Example: Recursive algorithms solving the Towers of Hanoi.
+	7. O(n!): Factorial time. The running time grows factorially with the input size. Example: Brute-force solutions to the traveling salesman problem.
 ### ✅ **Space Complexity**:
 * how much extra memory (RAM) the algorithm uses relative to input size.  expressed in Big O notation.
 * It includes **input storage, auxiliary space (like arrays, variables, stacks, etc.)**, and function call stack memory.
-
+	1. O(1): Constant space. The algorithm uses a fixed amount of memory regardless of input size. Example: Variables storing sums or counters.
+	2. O(n): Linear space. The memory usage grows linearly with the input size. Example: Storing an additional array or list.
+	3. O(n²): Quadratic space. The memory usage grows quadratically with the input size. Example: Storing a 2D matrix.
 
 ---
 
