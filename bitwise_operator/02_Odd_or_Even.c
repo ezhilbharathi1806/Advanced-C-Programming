@@ -12,5 +12,8 @@ int main()
         printf("Odd number: %d",n);
     }
 
+    // OR
+    // (n&1) ? printf("odd") : printf("even");
+
     return 0;
 }
