@@ -1,0 +1,276 @@
+Dynamic Memory Allocation in C - (runtime, heap allocation managed/freed manually by programmer)
+malloc(size): one parameter|Allocates a raw block of bytes in memory. It leaves the memory uninitialized, containing garbage values.Returns NULL if allocation fails
+	int *arr = malloc(5 * sizeof(int));
+
+	if (arr == NULL) {
+	    return 1;
+	}
+calloc(num, size): Takes two parameter|Allocates memory for an array of items. It automatically initializes all bytes to zero.
+	int *arr = calloc(5, sizeof(int));
+	
+| Feature              | `malloc()`                             | `calloc()`                             |
+| :------------------- | :------------------------------------- | :------------------------------------- |
+| Syntax               | `malloc(size)`                         | `calloc(count, size)`                  |
+| Number of Parameters | 1                                      | 2                                      |
+| Initialization       | No                                     | Yes                                    |
+| Initial Values       | Garbage values                         | All bytes set to zero                  |
+| Performance          | Slightly faster                        | Slightly slower                        |
+| Typical Use Case     | When you'll initialize memory manually | When zero-initialized memory is needed |
+
+realloc(ptr, size): Resizes an existing memory block to a new size. It keeps existing data safe, and acts like malloc if the original pointer is NULL.
+	int *temp = realloc(arr, 10 * sizeof(int));
+
+	if (temp != NULL) {
+	    arr = temp;
+	}
+	
+	| `realloc(NULL, size)`    | Allocates a new block           | `malloc(size)`      |
+	| `realloc(ptr, 0)`        | Frees the allocated block*      | `free(ptr)`  	   
+free(ptr): Releases dynamically allocated memory back to the system
+	free(arr);
+	arr = NULL;	//Setting the pointer to NULL avoid accidental access to freed memory.
+
+Process Memory Layout
+	+------------------+
+	| Command Line Args|
+	+------------------+
+	| Environment Vars |
+	+------------------+
+	| Stack            |
+	|                  |
+	|        ↓         |
+	|                  |
+	| Free Memory      |
+	|                  |
+	|        ↑         |
+	| Heap             |
+	+------------------+
+	| BSS Segment      |
+	+------------------+
+	| Data Segment     |
+	+------------------+
+	| Code/Text Segment|
+	+------------------+
+
+Stack vs Heap
+
+| Feature          | Stack                           | Heap                                        |
+| :--------------- | :------------------------------ | :------------------------------------------ |
+| Allocation       | Automatic                       | Manual                                      |
+| Managed By       | Compiler                        | Programmer                                  |
+| Lifetime         | Current function scope          | Until explicitly freed                      |
+| Allocation Speed | Very fast                       | Relatively slower                           |
+| Memory Size      | Limited                         | Much larger                                 |
+| Access Pattern   | Sequential                      | Random                                      |
+| Fragmentation    | No                              | Possible                                    |
+| Use Cases        | Local variables, function calls | Dynamic arrays, linked lists, trees, graphs |
+
+
+Memory Leak- A memory leak occurs when allocated memory becomes unreachable without being freed.
+	int *ptr = malloc(100 * sizeof(int));
+	ptr = NULL;	//The original address is lost, making the memory impossible to release.
+
+Dangling Pointer - A dangling pointer references memory that has already been freed.
+	int *ptr = malloc(sizeof(int));
+	free(ptr);
+	*ptr = 10;	//This results in undefined behavior.
+	
+Wild Pointer - is an uninitialized pointer.
+	int *ptr;
+	*ptr = 10;	//they point to some arbitrary memory location and may cause a program to crash or behave unexpectedly.
+	
+Double Free - Freeing the same memory block more than once leads to undefined behavior.
+	free(ptr);
+	free(ptr);
+	
+Dynamic Memory Allocation Cheat Sheet
+	int *ptr = NULL;
+
+	// Allocate memory
+	ptr = malloc(10 * sizeof(int));
+
+	// Allocate and initialize to zero
+	ptr = calloc(10, sizeof(int));
+
+	// Resize memory
+	int *temp = realloc(ptr, 20 * sizeof(int));
+	if (temp != NULL) {
+	    ptr = temp;
+	}
+
+	// Release memory
+	free(ptr);
+	ptr = NULL;
+	
+	
+==================================================================================================================================
+Valgrind
+
+	- Valgrind to find memory leaks and runtime errors in a C program
+	- You must use the -g flag when compiling with gcc
+		gcc -g -O0 program.c -o program
+		Note: Using -O0 disables optimizations, which prevents the compiler from rearranging your code and ensures Valgrind's line numbers are completely accurate
+	
+https://valgrind.org/docs/manual/quick-start.html
+
+> sudo apt  install valgrind 
+
+To list all the flags use > valgrind -h or > valgrinf --help
+> gcc -g -O0 program.c -o output
+> valgrind ./output
+> valgrind --leak-check=full --show-leak-kinds=all ./output
+
+Valgrind is strictly a user-space memory debugger.
+Kernel-Space Alternatives - To catch memory bugs inside the driver code itself, the Linux kernel provides built-in, highly advanced sanitizers and debuggers. You must enable these options in your kernel configuration (make menuconfig) and rebuild your kernel or module.
+
+Tool Name                         What it Profiles                              Valgrind Equivalent              How to Enable (Kconfig)
+------------------------------------------------------------------------------------------------------------------------------------------------
+KASAN (Kernel Address Sanitizer)  Out-of-bounds access, use-after-free,         memcheck (Invalid reads/writes)  CONFIG_KASAN=y
+                                  double-frees
+
+Kmemleak                          Memory leaks within kmalloc, kzalloc,         memcheck --leak-check=full      CONFIG_DEBUG_KMEMLEAK=y
+                                  vmalloc
+
+KCSAN (Kernel Concurrency         Data races and concurrency issues.             helgrind / drd                  CONFIG_KCSAN=y
+Sanitizer)
+
+Lockdep                           Deadlocks, incorrect locking orders.           helgrind                        CONFIG_PROVE_LOCKING=y
+
+==================================================================================================================================
+GDB (GNU Debugger) - used to debug a c program
+
+Compile with debug info (-g flag):
+	> gcc -g myprogram.c -o myprogram
+Why use -g?
+	When you compile with -g, GCC stores information such as:
+	    • Source file names
+	    • Line numbers
+	    • Variable names
+	    • Function names
+	    • Information about data types and program structure
+	This allows GDB to connect the machine code back to your C source code.
+
+Run in GDB:
+	> gdb ./myprogram
+	
+Inside GDB (commands can be abbreviated):
+	(gdb) run			# start the program (pass args: run arg1 arg2)
+	(gdb) break main          	# set breakpoint at function main
+	(gdb) break myfile.c:42   	# breakpoint at line 42 in file
+	(gdb) run
+	Breakpoint 1, main () at myfile.c:10
+	(gdb) next                	# execute next line (step over functions)
+	(gdb) step                	# step into functions
+	(gdb) print myvar         	# show value of variable (p myvar)
+	(gdb) backtrace           	# show call stack (bt)
+	(gdb) continue            	# resume until next breakpoint
+	(gdb) quit
+To list all break points
+	(gdb) info break	or (gdb) i b
+to delete breakpoints
+	(gdb) delete 1 		or (gdb) d 1 
+	(gdb) delete 3 7 5 	or (gdb) d 3 7 5  # to delete multiple breakpoints 
+	(gdb) delete	or (gdb) d 	# to delete all breakpoints
+
+    • run (or r): Starts executing the program from the beginning. You can pass command-line arguments here (e.g., run arg1 arg2).
+    • break <location> (or b): Sets a breakpoint to pause execution. You can specify a line number (break 15) or a function name (break main).
+    • next (or n): Steps over the current line of code to the next line in the same function.
+    • step (or s): Steps into a function call if one exists on the current line.
+    • continue (or c): Resumes execution until the program hits the next breakpoint or terminates.
+    • print <variable> (or p): Displays the current value of a variable.
+    • backtrace (or bt): Shows the call stack, which is highly useful for pinpointing where a segmentation fault occurred.
+    • quit (or q): Exits the GDB environment.
+    
+Quick Visual Layout Mode (TUI)
+If you prefer seeing your source code visually in the terminal while you step through it, type the following command inside GDB:
+	(gdb) layout src
+==================================================================================================================================
+
+objdump
+
+objdump is a powerful command-line tool used to inspect and disassemble compiled binary files
+
+While GDB is an interactive debugger used to watch a program run in real-time, objdump is a static analysis tool used to look under the hood of a compiled file without executing it. It is part of the GNU Binutils suite.
+
+Why objdump is Used
+Developers, reverse engineers, and security researchers use objdump for several key reasons:
+    • Disassembling Binaries: It translates compiled machine code (binary 1s and 0s) back into human-readable Assembly language.
+    • Debugging Without Source Code: If a program is crashing but you do not have the original .c source code, objdump lets you inspect the low-level
+    	instructions to see exactly what the CPU is executing.
+    • Analyzing Binary Architecture: It reveals critical metadata about the file, such as whether it was compiled for a 64-bit or 32-bit CPU, its target
+    	architecture (x86, ARM, etc.), and its entry point.
+    • Inspecting Sections & Symbols: Compilers organize binaries into sections (like .text for code, .data for global variables). objdump allows you to see
+    	the exact size, memory addresses, and contents of these headers and symbol tables.
+
+1. Disassemble Code (-d or -D) 
+	To view the assembly instructions of the executable's code sections:
+	> objdump -d my_program
+
+2. Mix C Source Code with Assembly (-S)
+	If the program was compiled with debugging symbols (gcc -g), 
+	objdump can interweave your original C source code directly above its corresponding assembly instructions. 
+	This is incredibly useful for learning how C code translates to machine instructions.
+	> objdump -S my_program
+
+3. View File Headers (-f)
+	To quickly check the binary's architecture, file format (like ELF), and starting memory address:
+	> objdump -f my_program
+
+4. Display the Symbol Table (-t)
+	To see a list of all functions and global variables defined in the binary along with their memory addresses:
+	> objdump -t my_program
+
+
+Direct Comparison: GDB vs. objdump
+Feature             | GDB                                      | objdump
+--------------------|------------------------------------------|-----------------------------------------
+Analysis Type       | Dynamic (analyzes the program while it   | Static (analyzes the file on disk without
+                    | runs)                                    | running it)
+		    |					       |
+Primary Use Case    | Finding runtime bugs, memory leaks, and  | Reverse engineering, optimizing assembly,
+                    | stepping through code                    | and binary inspection
+		    |					       |
+Requirements        | Prefers debugging symbols (-g) for best  | Works on any binary, even stripped
+                    | results                                  | commercial software
+		    |					       |
+Interface           | Interactive command prompt               | Standard command-line tool (outputs text
+                    |                                          | to the terminal)
+==================================================================================================================================
+addr2line 
+	 command in Linux is a utility that translates instruction addresses into file names and line numbers in your source code. 
+	 It is heavily used by developers for debugging, interpreting core dumps, and parsing crash logs or stack traces.
+	 
+1. Basic Translation 
+	To find out where a single hexadecimal memory address originates in your executable: -e --exe=<executable>
+		> addr2line -e my_program 0x401122
+			Output:text/home/user/project/main.c:24
+		> addr2line -e my_program -f 0x401122
+			
+> addr2line -h
+Usage: addr2line [option(s)] [addr(s)]
+ Convert addresses into line number/file name pairs.
+ If no addresses are specified on the command line, they will be read from stdin
+ The options are:
+  @<file>                Read options from <file>
+  -a --addresses         Show addresses
+  -b --target=<bfdname>  Set the binary file format
+  -e --exe=<executable>  Set the input file name (default is a.out)
+  -i --inlines           Unwind inlined functions
+  -j --section=<name>    Read section-relative offsets instead of addresses
+  -p --pretty-print      Make the output easier to read for humans
+  -s --basenames         Strip directory names
+  -f --functions         Show function names
+  -C --demangle[=style]  Demangle function names
+  -R --recurse-limit     Enable a limit on recursion whilst demangling.  [Default]
+  -r --no-recurse-limit  Disable a limit on recursion whilst demangling
+  -h --help              Display this information
+  -v --version           Display the program's version
+
+
+Fallback Values
+If addr2line cannot map a given address to your source code, it will return placeholder indicators: [1]
+    • ?? instead of the function or file name.
+    • 0 instead of the line number
+    
+Refer: https://www.geeksforgeeks.org/linux-unix/addr2line-command-in-linux-with-examples/
+
